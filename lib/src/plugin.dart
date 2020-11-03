@@ -66,7 +66,8 @@ class Plugin {
   iceState(RTCIceConnectionState state) => callbacks.iceState(state);
   mediaState(mediaType, mediaReciving) =>
       callbacks.mediaState(mediaType, mediaReciving);
-  webrtcState(bool state, [reason]) => callbacks.webrtcState(state, [reason]);
+  // webrtcState(bool state, [reason]) => callbacks.webrtcState(state, [reason]);
+  webrtcState() => callbacks.webrtcState();
   slowLink(uplink, lost) => callbacks.slowLink(uplink, lost);
   onMessage(data, jsep) => callbacks.onMessage(data, jsep);
   createOffer({Callbacks callbacks}) =>

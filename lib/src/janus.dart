@@ -136,6 +136,7 @@ class Janus {
             onTimeout: () =>
                 Janus.error('Request timed out: ' + timeout.toString()))
         .then((response) {
+      print('RESPONSE: $response');
       if (response.statusCode == 200) {
         if (callbacks.success is Function) {
           callbacks.success(jsonDecode(response.body));

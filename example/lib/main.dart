@@ -1,5 +1,4 @@
 import 'dart:core';
-
 import 'package:flutter/material.dart';
 
 import 'src/api_test/api_test_menu.dart';
@@ -43,16 +42,18 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return new MaterialApp(
       home: new Scaffold(
-          appBar: new AppBar(
-            title: new Text('Flutter-Janus'),
-          ),
-          body: new ListView.builder(
-              shrinkWrap: true,
-              padding: const EdgeInsets.all(0.0),
-              itemCount: items.length,
-              itemBuilder: (context, i) {
-                return _buildRow(context, items[i]);
-              })),
+        appBar: new AppBar(
+          title: new Text('Flutter-Janus'),
+        ),
+        body: ListView.builder(
+          shrinkWrap: true,
+          padding: const EdgeInsets.all(0.0),
+          itemCount: items.length,
+          itemBuilder: (context, i) {
+            return _buildRow(context, items[i]);
+          },
+        ),
+      ),
     );
   }
 
@@ -63,9 +64,11 @@ class _MyAppState extends State<MyApp> {
           subtitle: 'API Tests.',
           push: (BuildContext context) {
             Navigator.push(
-                context,
-                new MaterialPageRoute(
-                    builder: (BuildContext context) => new ApiTestMenu()));
+              context,
+              new MaterialPageRoute(
+                builder: (BuildContext context) => new ApiTestMenu(),
+              ),
+            );
           }),
       RouteItem(
           title: 'Janus Demos',

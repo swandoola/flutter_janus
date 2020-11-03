@@ -249,7 +249,7 @@ class Session {
         Janus.debug("This handle is not attached to this session");
         return;
       }
-      pluginHandle.webrtcState(true);
+      // pluginHandle.webrtcState(true);
       return;
     } else if (json["janus"] == "hangup") {
       // A plugin asked the core to hangup a PeerConnection on one of our handles
@@ -265,7 +265,7 @@ class Session {
         Janus.debug("This handle is not attached to this session");
         return;
       }
-      pluginHandle.webrtcState(false, json["reason"]);
+      // pluginHandle.webrtcState(false, json["reason"]);
       pluginHandle.hangup(true);
     } else if (json["janus"] == "detached") {
       // A plugin asked the core to detach one of our handles
@@ -940,7 +940,7 @@ class Session {
         return;
       }
       // If we got here, the plugin decided to handle the request asynchronously
-      if (callbacks.success is Function) callbacks.success();
+      // if (callbacks.success is Function) callbacks.success();
     };
 
     httpCallbacks.error = (textStatus, errorThrown) {
@@ -1923,7 +1923,8 @@ class Session {
         bool simulcast2 = (callbacks.simulcast2 == true);
         if ((simulcast || simulcast2) && jsep == null && !media['video'])
           media['video'] = "hires";
-        if (media['video'] &&
+        if (media['video'] !=
+                null && //TODO: can't check falsy values in dart. Explicit check required
             media['video'] != 'screen' &&
             media['video'] != 'window') {
           if (media['video'] is String) {
@@ -2147,10 +2148,12 @@ class Session {
             return device['kind'] == 'audioinput';
           });
 
-          bool videoExist = isScreenSendEnabled(media) ||
-              devices.any((device) {
-                return device['kind'] == 'videoinput';
-              });
+          bool videoExist = false;
+
+          // bool videoExist = isScreenSendEnabled(media) ||
+          //     devices.any((device) {
+          //       return device['kind'] == 'videoinput';
+          //     });
 
           // Check whether a missing device is really a problem
           bool audioSend = isAudioSendEnabled(media);
@@ -3175,25 +3178,25 @@ class Session {
     return (media['videoRecv'] == true);
   }
 
-  isScreenSendEnabled(Map<String, dynamic> media) {
-    Janus.debug("isScreenSendEnabled:", media);
-    if (media == null) return false;
-    if (media['video'] is bool)
-      return false;
-    else {
-      var constraints = media['video']['mandatory'];
-      if (constraints['chromeMediaSource'])
-        return constraints['chromeMediaSource'] == 'desktop' ||
-            constraints['chromeMediaSource'] == 'screen';
-      else if (constraints.mozMediaSource)
-        return constraints['mozMediaSource'] == 'window' ||
-            constraints['mozMediaSource'] == 'screen';
-      else if (constraints.mediaSource)
-        return constraints['mediaSource'] == 'window' ||
-            constraints['mediaSource'] == 'screen';
-      return false;
-    }
-  }
+  // isScreenSendEnabled(Map<String, dynamic> media) {
+  //   Janus.debug("isScreenSendEnabled:", media);
+  //   if (media == null) return false;
+  //   if (media['video'] is bool)
+  //     return false;
+  //   else {
+  //     var constraints = media['video']['mandatory'];
+  //     if (constraints['chromeMediaSource'])
+  //       return constraints['chromeMediaSource'] == 'desktop' ||
+  //           constraints['chromeMediaSource'] == 'screen';
+  //     else if (constraints.mozMediaSource)
+  //       return constraints['mozMediaSource'] == 'window' ||
+  //           constraints['mozMediaSource'] == 'screen';
+  //     else if (constraints.mediaSource)
+  //       return constraints['mediaSource'] == 'window' ||
+  //           constraints['mediaSource'] == 'screen';
+  //     return false;
+  //   }
+  // }
 
   isDataEnabled(Map<String, dynamic> media) {
     Janus.debug("isDataEnabled:", media.toString());

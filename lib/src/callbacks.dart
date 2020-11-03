@@ -28,7 +28,7 @@ class Callbacks {
   String token;
   String transaction;
 
-  Map<String, String> request;
+  Map<String, dynamic> request;
   Map<String, dynamic> message;
   dynamic jsep;
   dynamic text;
@@ -46,12 +46,19 @@ class Callbacks {
   bool iceRestart = false;
   MediaStream stream;
 
-  Function success = (response) => {Janus.debug(response.toString())};
+  // Function success = (response) => {
+  //       // if (response != null) {Janus.debug(response.toString())}
+  //       print('Printing callback.success')
+  //     };
+  Function success = () => {
+        // if (response != null) {Janus.debug(response.toString())}
+        print('Printing callback.success')
+      };
   Function error = (error) => {Janus.debug(error)};
   Function consentDialog = () => {};
   Function iceState = () => {};
   Function mediaState = () => {};
-  Function webrtcState = () => {};
+  Function webrtcState = () => {print('webrtcState fired...')};
   Function slowLink = () => {};
   Function onMessage = () => {};
   Function onLocalStream = () => {};
