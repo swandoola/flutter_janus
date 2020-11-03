@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:html';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutterjanus/flutterjanus.dart';
+import 'package:flutterjanus_example/utils.dart';
 
 class JanusVideoRoom extends StatefulWidget {
   JanusVideoRoom({Key key}) : super(key: key);
@@ -12,7 +12,8 @@ class JanusVideoRoom extends StatefulWidget {
 }
 
 class _JanusVideoRoomState extends State<JanusVideoRoom> {
-  String server = "wss://janutter.tzty.net:7007";
+  String server = "https://${masterUrl}";
+
   // String server = "https://janutter.tzty.net:8008/janus";
 
   String opaqueId = "videoroomtest-" + Janus.randomString(12);
@@ -20,12 +21,12 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
   bool audioEnabled = false;
   bool videoEnabled = false;
 
-  String myRoom = "1234"; // Demo room
+  int myRoom = 1542; // Demo room
   String myUsername;
-  String myId;
+  int myId;
   MediaStream myStream;
-  String myPvtId; // We use this other ID just to map our subscriptions to us
-  List<Plugin> feeds;
+  int myPvtId; // We use this other ID just to map our subscriptions to us
+  List<Plugin> feeds = [];
   Map<String, dynamic> list;
   Map<String, dynamic> bitrateTimer;
 
@@ -37,7 +38,7 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
   Plugin sfutest;
 
   RTCVideoRenderer localRenderer = new RTCVideoRenderer();
-  List<RTCVideoRenderer> remoteRenderer;
+  List<RTCVideoRenderer> remoteRenderer = [];
 
   bool _inCalling = false;
   bool _registered = false;
@@ -49,14 +50,14 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
   @override
   void initState() {
     super.initState();
-    Janus.init(options: {"debug": "all"}, callback: null);
+    Janus.init(options: {"debug": "all"}, callback: () {});
     initRenderers();
   }
 
   initRenderers() async {
     await localRenderer.initialize();
-    for (int i = 1; i < 6; i++) {
-      remoteRenderer[i] = new RTCVideoRenderer();
+    for (int i = 0; i < 6; i++) {
+      remoteRenderer.add(RTCVideoRenderer());
       await remoteRenderer[i].initialize();
     }
     _connect();
@@ -66,7 +67,7 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
   void deactivate() {
     super.deactivate();
     localRenderer.dispose();
-    for (int i = 1; i < 6; i++) {
+    for (int i = 0; i < remoteRenderer.length; i++) {
       remoteRenderer[i].dispose();
     }
     if (session != null) session.destroy();
@@ -81,18 +82,19 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
         "ptype": "publisher",
         "display": username
       };
+      callbacks.success = (response) {};
       myUsername = username;
       sfutest.send(callbacks);
     }
   }
 
-  publishOwnFeed(bool useAudio=true) {
+  publishOwnFeed(bool useAudio) {
     if (sfutest != null) {
       Callbacks callbacks = Callbacks();
-      callbacks.media = { 
-        "audioRecv" : false, 
-        "videoRecv": false, 
-        "audioSend": useAudio, 
+      callbacks.media = {
+        "audioRecv": false,
+        "videoRecv": false,
+        "audioSend": useAudio,
         "videoSend": true
       };
       callbacks.simulcast = doSimulcast;
@@ -106,12 +108,13 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
           "video": true
         };
         // You can force a specific codec to use when publishing by using the
-				// audiocodec and videocodec properties, for instance:
-				// 		publish["audiocodec"] = "opus"
-				// to force Opus as the audio codec to use, or:
-				// 		publish["videocodec"] = "vp9"
+        // audiocodec and videocodec properties, for instance:
+        // 		publish["audiocodec"] = "opus"
+        // to force Opus as the audio codec to use, or:
+        // 		publish["videocodec"] = "vp9"
         callbacks.message = publish;
         callbacks.jsep = jsep.toMap();
+        callbacks.success = (response) {};
         sfutest.send(callbacks);
         setState(() {
           _inCalling = true;
@@ -129,6 +132,7 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
   unpublishOwnFeed() {
     if (sfutest != null) {
       Callbacks callbacks = Callbacks();
+      callbacks.success = (response) {};
       callbacks.message = {
         "request": "unpublish",
       };
@@ -144,8 +148,12 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
     callbacks.opaqueId = opaqueId;
     callbacks.success = (Plugin pluginHandle) {
       remoteFeed = pluginHandle;
-      Janus.log("Plugin attached! (" + remoteFeed.getPlugin() + ", id=" + remoteFeed.getId().toString() + ")");
-			Janus.log("  -- This is a subscriber");
+      Janus.log("Plugin attached! (" +
+          remoteFeed.getPlugin() +
+          ", id=" +
+          remoteFeed.getId().toString() +
+          ")");
+      Janus.log("  -- This is a subscriber");
       Map<String, dynamic> subscribe = {
         "request": "join",
         "room": myRoom,
@@ -167,17 +175,17 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
     callbacks.mediaState = _mediaState;
     callbacks.webrtcState = _webrtcState;
     callbacks.slowLink = _slowLink;
-    callbacks.onMessage = (Map<String, dynamic> msg, jsep){
+    callbacks.onMessage = (Map<String, dynamic> msg, jsep) {
       Janus.debug(" ::: Got a message (subscriber) :::");
       Janus.debug(msg);
       String event = msg["videoroom"];
       Janus.debug("Event: " + event.toString());
-      if(msg["error"] != null){
+      if (msg["error"] != null) {
         Janus.error(msg["error"]);
       } else if (event != null) {
         if (event == "attached") {
           // Subscriber created and attached
-          for (int i = 1; i < 6; i++) {
+          for (int i = 0; i < feeds.length; i++) {
             if (feeds[i] != null) {
               remoteFeed.remoteFeedIndex = i;
               feeds[i] = remoteFeed;
@@ -186,16 +194,19 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
           }
           remoteFeed.remoteFeedId = msg["id"];
           remoteFeed.remoteFeedDisplay = msg["display"];
-          Janus.log("Successfully attached to feed " + remoteFeed.remoteFeedId.toString()+ " (" + remoteFeed.remoteFeedDisplay + ") in room " + msg["room"]);
-        
+          Janus.log("Successfully attached to feed " +
+              remoteFeed.remoteFeedId.toString() +
+              " (" +
+              remoteFeed.remoteFeedDisplay +
+              ") in room " +
+              msg["room"]);
         } else if (event == "event") {
           // Check if we got an event on a simulcast-related event from this publisher
           var substream = msg["substream"];
           var temporal = msg["temporal"];
-          if (substream != null || temporal != null){
+          if (substream != null || temporal != null) {
             Janus.log("Feed supports simulcast");
           }
-          
         }
       }
       if (jsep != null) {
@@ -203,10 +214,7 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
         Janus.debug(jsep);
         Callbacks callbacks = Callbacks();
         callbacks.jsep = jsep;
-        callbacks.media = {
-          "audioSend": false,
-          "videoSend": false
-        };
+        callbacks.media = {"audioSend": false, "videoSend": false};
         callbacks.success = (RTCSessionDescription jsep) {
           Janus.debug("Got SDP!");
           Janus.debug(jsep.toMap());
@@ -224,21 +232,22 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
       // The subscriber stream is recvonly, we don't expect anything here
       Janus.log("The subscriber stream is receive only.");
     };
-    callbacks.onRemoteStream = (MediaStream stream){
+    callbacks.onRemoteStream = (MediaStream stream) {
       Janus.debug("Remote feed #" + remoteFeed.remoteFeedId.toString());
       remoteRenderer[remoteFeed.remoteFeedIndex].srcObject = stream;
     };
     callbacks.onDataOpen = _onDataOpen;
     callbacks.onData = _onData;
-    callbacks.onCleanup = (){
-      Janus.log(" ::: Got a cleanup notification (remote feed " + remoteFeed.remoteFeedId.toString() + ") :::");
+    callbacks.onCleanup = () {
+      Janus.log(" ::: Got a cleanup notification (remote feed " +
+          remoteFeed.remoteFeedId.toString() +
+          ") :::");
       remoteRenderer[remoteFeed.remoteFeedIndex].srcObject = null;
       remoteFeed.remoteFeedDisplay = null;
       remoteFeed.remoteFeedId = null;
       remoteFeed.remoteFeedIndex = null;
     };
     this.session.attach(callbacks: callbacks);
-
   }
 
   updateCall(jsep) {
@@ -267,6 +276,7 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
 
   getRegisteredUsers() {
     Callbacks callbacks = Callbacks();
+    callbacks.success = (response) {};
     callbacks.message = {"request": "list"};
     sfutest.send(callbacks);
   }
@@ -381,6 +391,7 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
         Janus.warn("The room has been destroyed!");
       } else if (event == "event") {
         // Any new feed to attach to?
+        Plugin remoteFeed;
         if (msg["publishers"] != null) {
           list = msg["publishers"];
           Janus.debug("Got a list of available publishers/feeds:");
@@ -404,20 +415,19 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
         } else if (msg["leaving"] != null) {
           var leaving = msg["leaving"];
           Janus.log("Publisher left: " + leaving.toString());
-          Plugin remoteFeed;
-          for (int i = 1; i < 6; i++) {
-            if (feeds[i] != null && feeds[i].remoteFeedId"] == leaving) {
+          for (int i = 0; i < feeds.length; i++) {
+            if (feeds[i] != null && feeds[i].remoteFeedId == leaving) {
               remoteFeed = feeds[i];
             }
           }
           if (remoteFeed != null) {
-            Janus.debug("Feed " +
+            /*         Janus.debug("Feed " +
                 remoteFeed.rfid.toString() +
                 " (" +
                 remoteFeed.rfdisplay.toString() +
                 ") has left the room, detaching");
             feeds[remoteFeed["rfindex"]] = null;
-            remoteFeed.detach();
+            remoteFeed.detach();*/
           }
         } else if (msg["unpublished"] != null) {
           var unpublished = msg["unpublished"];
@@ -428,8 +438,8 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
             return;
           }
           var remoteFeed;
-          for (int i = 1; i < 6; i++) {
-            if (feeds[i] != null && feeds[i]["rfid"] == unpublished) {
+          for (int i = 0; i < feeds.length; i++) {
+            if (feeds[i] != null /* && feeds[i]["rfid"] == unpublished*/) {
               remoteFeed = feeds[i];
             }
           }
@@ -457,6 +467,7 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
       Janus.debug("Handling SDP as well...");
       Janus.debug(jsep);
       Callbacks callbacks = Callbacks();
+      callbacks.success = () {};
       callbacks.jsep = jsep;
       sfutest.handleRemoteJsep(callbacks);
       var audio = msg["audio_codec"];
@@ -504,15 +515,15 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
   _onCleanup() {
     Janus.log(" ::: Got a cleanup notification :::");
     myStream = null;
-    _localRenderer.srcObject = null;
+    localRenderer.srcObject = null;
   }
 
   _hangUp() async {
     try {
       GatewayCallbacks gatewayCallbacks;
       session.destroy(gatewayCallbacks: gatewayCallbacks);
-      _localRenderer.srcObject = null;
-      for (int i = 1; i < 6; i++) {
+      localRenderer.srcObject = null;
+      for (int i = 0; i < remoteRenderer.length; i++) {
         remoteRenderer[i].srcObject = null;
       }
     } catch (e) {
@@ -555,41 +566,46 @@ class _JanusVideoRoomState extends State<JanusVideoRoom> {
                       width: MediaQuery.of(context).size.width / 2.1,
                       height: MediaQuery.of(context).size.height / 4.0,
                     ),
-                    Container(
-                      decoration: new BoxDecoration(color: Colors.black54),
-                      child: new RTCVideoView(remoteRenderer[1]),
-                      width: MediaQuery.of(context).size.width / 2.1,
-                      height: MediaQuery.of(context).size.height / 4.0,
-                    ),
-                    Container(
-                      decoration: new BoxDecoration(color: Colors.black54),
-                      child: new RTCVideoView(remoteRenderer[2]),
-                      width: MediaQuery.of(context).size.width / 2.1,
-                      height: MediaQuery.of(context).size.height / 4.0,
-                    ),
+                    if (remoteRenderer.length > 0)
+                      Container(
+                        decoration: new BoxDecoration(color: Colors.black54),
+                        child: new RTCVideoView(remoteRenderer[0]),
+                        width: MediaQuery.of(context).size.width / 2.1,
+                        height: MediaQuery.of(context).size.height / 4.0,
+                      ),
+                    if (remoteRenderer.length > 1)
+                      Container(
+                        decoration: new BoxDecoration(color: Colors.black54),
+                        child: new RTCVideoView(remoteRenderer[1]),
+                        width: MediaQuery.of(context).size.width / 2.1,
+                        height: MediaQuery.of(context).size.height / 4.0,
+                      ),
                   ],
                 ),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Container(
-                      decoration: new BoxDecoration(color: Colors.black54),
-                      child: new RTCVideoView(remoteRenderer[3]),
-                      width: MediaQuery.of(context).size.width / 2.1,
-                      height: MediaQuery.of(context).size.height / 4.0,
-                    ),
-                    Container(
-                      decoration: new BoxDecoration(color: Colors.black54),
-                      child: new RTCVideoView(remoteRenderer[4]),
-                      width: MediaQuery.of(context).size.width / 2.1,
-                      height: MediaQuery.of(context).size.height / 4.0,
-                    ),
-                    Container(
-                      decoration: new BoxDecoration(color: Colors.black54),
-                      child: new RTCVideoView(remoteRenderer[5]),
-                      width: MediaQuery.of(context).size.width / 2.1,
-                      height: MediaQuery.of(context).size.height / 4.0,
-                    ),
+                    if (remoteRenderer.length > 2)
+                      Container(
+                        decoration: new BoxDecoration(color: Colors.black54),
+                        child: new RTCVideoView(remoteRenderer[2]),
+                        width: MediaQuery.of(context).size.width / 2.1,
+                        height: MediaQuery.of(context).size.height / 4.0,
+                      ),
+                    if (remoteRenderer.length > 3)
+                      Container(
+                        decoration: new BoxDecoration(color: Colors.black54),
+                        child: new RTCVideoView(remoteRenderer[3]),
+                        width: MediaQuery.of(context).size.width / 2.1,
+                        height: MediaQuery.of(context).size.height / 4.0,
+                      ),
+                    if (remoteRenderer.length > 4)
+                      Container(
+                        decoration: new BoxDecoration(color: Colors.black54),
+                        child: new RTCVideoView(remoteRenderer[3]),
+                        width: MediaQuery.of(context).size.width / 2.1,
+                        height: MediaQuery.of(context).size.height / 4.0,
+                      ),
                   ],
                 )
               ],

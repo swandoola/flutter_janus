@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutterjanus/flutterjanus.dart';
+import 'package:flutterjanus_example/utils.dart';
 
 class JanusVideoCall extends StatefulWidget {
   JanusVideoCall({Key key}) : super(key: key);
@@ -11,7 +12,7 @@ class JanusVideoCall extends StatefulWidget {
 }
 
 class _JanusVideoCallState extends State<JanusVideoCall> {
-  String server = "wss://janutter.tzty.net:7007";
+  String server = "https://${masterUrl}";
   // String server = "https://janutter.tzty.net:8008/janus";
 
   String opaqueId = "videocalltest-" + Janus.randomString(12);
@@ -193,6 +194,7 @@ class _JanusVideoCallState extends State<JanusVideoCall> {
     if (videocall != null) {
       Callbacks callbacks = Callbacks();
       callbacks.message = {"request": "register", "username": username};
+      callbacks.success = () {};
       videocall.send(callbacks);
     }
   }

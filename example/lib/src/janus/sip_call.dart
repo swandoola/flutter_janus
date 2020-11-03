@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutterjanus/flutterjanus.dart';
+import 'package:flutterjanus_example/utils.dart';
 import '../widgets/sip_settings.dart';
 import '../utils/shared_preferences.dart';
 
@@ -13,7 +14,7 @@ class JanusSipCall extends StatefulWidget {
 }
 
 class _JanusSipCallState extends State<JanusSipCall> {
-  String server = "wss://janutter.tzty.net:7007";
+  String server = "https://{$masterUrl}";
   // String server = "https://janutter.tzty.net:8008/janus";
   String opaqueId = "siptest-" + Janus.randomString(12);
 

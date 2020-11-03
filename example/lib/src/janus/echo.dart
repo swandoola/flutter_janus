@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'dart:core';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutterjanus/flutterjanus.dart';
+import 'package:flutterjanus_example/utils.dart';
 
 class JanusEcho extends StatefulWidget {
   static String tag = 'janus_demo_echo';
@@ -15,7 +16,7 @@ class JanusEcho extends StatefulWidget {
 }
 
 class _JanusEchoState extends State<JanusEcho> {
-  String server = "wss://janutter.tzty.net:7007";
+  String server = "https://${masterUrl}";
   // String server = "https://janutter.tzty.net:8008/janus";
 
   String opaqueId = "echotest-" + Janus.randomString(12);
